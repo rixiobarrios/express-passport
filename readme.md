@@ -2,17 +2,13 @@
 
 ## Learning Objectives
 
-- Create a login form with email & password
-- Use passport-local to find a user & verify their password
-- Restrict access to API without an authenticated user
+- Explain the difference between Encryption and Hashing
+- Explain what is an authentication strategy
+- Use passport-local to implement user authentication in an Express application
+- Explain the difference between sessions and flashes
+- Explain the role cookies play in user authentication
 
-## Preparation
-
-- Create an express application and add CRUD/REST resources
-- Create a Mongoose Model
-- Describe an authentication model
-
-## Passport and the logics - Intro (5 mins)
+## Intro to Passport.js
 
 From the [passport website](http://passportjs.org/docs):
 
@@ -26,16 +22,93 @@ The main concept when using passport is to register _Strategies_.  A strategy is
 
 Because strategies are packaged as individual modules, we can pick and choose which ones we need for our application. This logic allows the developer to keep the code simple - without unnecessary dependencies - in the controller and delegate the proper authentication job to some specific passport code.
 
+There are currently more than [300 Passport.js strategies](http://www.passportjs.org/packages/).
 
-## Implementing Passport.js - Codealong (25 mins)
+### Why Passport.js?
+
+[Passport.js](http://www.passportjs.org/) is a middleware that simplifies implementing user authentication in JS applications.
+
+While it's interesting to know what's happening under the hood when authenticating a user, it's very unlikely you'll implement your own authentication mechanism in any future project. Passport is a well-tested open source authentication solution for JavaScript Applications.
+
+Along with Bcrypt, Passport takes care of making sure that passwords are properly stored in our database (i.e. not in plain text).
+
+<details>
+  <summary><strong>Why might storing passwords in the database be a bad idea?</strong></summary>
+
+  - Because of password reuse, if an attacker were to get access to our database, other accounts of our users may be threatened.
+  - [Plain Text Offenders](http://plaintextoffenders.com/faq/devs)
+
+</details>
+
+<details>
+  <summary><strong>What are the alternatives to storing passwords in plaintext?</strong></summary>
+
+  - Hashing
+  - Encryption
+
+</details>
+
+### You Do: Hashing vs. Encryption
+
+Read through [this blog post](http://www.securityinnovationeurope.com/blog/whats-the-difference-between-hashing-and-encrypting).
+
+Prepare to answer the following questions...
+
+<details>
+  <summary><strong>What is the difference between encryption and hashing?</strong></summary>
+
+  > **Encryption** takes a string and, using a key/algorithm, converts it to another string of variable length. The key/algorithm can be used to revert -- or "decrypt" -- the new string back to the original. In other words, it is a two-way process.
+  >
+  > **Hashing** is similar to encryption in that it converts a string to a different one using an algorithm. It cannot, however, be reverted back to the original, making it a one-way process.
+
+</details>
+
+<details>
+  <summary><strong>When would you choose one over the other?</strong></summary>
+
+  > Encryption should only be used if somebody or something needs to see the original string.
+
+</details>
+
+<details>
+  <summary><strong>Which one should be used for passwords?</strong></summary>
+
+  > **Hashing**. For security reasons, there is no need to store or gain access to the original password. All an application needs to do is to take in a password attempt, pass it through the hashing algorithm and see if it matches with the hash generated when the particular user signed for an account with an app.
+
+</details>
+
+> Some more resources...
+>
+> - [Encoding vs. Encryption vs. Hashing vs. Obfuscation](https://danielmiessler.com/study/encoding-encryption-hashing-obfuscation/#gs.7lUOAZI)
+> - [Why are salted hashes more secure for password storage?](http://security.stackexchange.com/questions/51959/why-are-salted-hashes-more-secure-for-password-storage)
+
+### Sessions
+
+Many of us have been to several webpages that only allow us to access content if we are users of the webpage. Annoying, yes. But why do you think this would be necessary for many websites?. That said, how is this concept of "being signed in" done programmatically? How is that information persisted from request to request? Enter Sessions.
+
+Most applications need to keep track of the state of a particular user. Is a user logged-in? Is there information that is unique to this user's instance of being signed in?
+
+HTTP is by nature, however, stateless. That is, the program is not keeping record of previous interactions. Without state, a user would have to identify themselves after every request. Our shopping carts in Amazon couldn't keep their contents.
+
+A session is just a place to store data during one request that you can read during later requests. The session in JS is an object. This object allows us to keep track of this information. Today in Express we will create a new session automatically when a new user signs into an application.
+
+Sessions are used mostly for user authentication and authorization, shopping carts, and setting a current model to persist throughout requests.
+
+### Flash
+
+Flash is a message that is generated in one controller action, and is accessible only in the next controller action. It is used only to contain messages to the user, not any other sort of data.
+
+Think of flash as a session that only lasts for one request.
+
+## We Do: Implementing Passport.js
 
 #### Setup/Review Starter Code
 
 First, clone the starter code
 
-    $ git clone https://github.com/ga-dc/express-passport-local-authentication.git
+    $ git clone https://git.generalassemb.ly/ga-wdi-exercises/express-passport-local-authentication/
 
-and setup with `npm install` to ensure that we have all of the correct dependencies.
+`cd` into the cloned folder, and run `npm install` to ensure that we have all of the correct dependencies.
 
 The starter-code is structured like this:
 
@@ -65,7 +138,7 @@ The starter-code is structured like this:
 7 directories, 12 files
 ```
 
-Now let's open the code up in Atom with `atom .`.
+Now let's open the code up in Visual Studio Code with `code .`.
 
 #### Users & Statics Controller
 
@@ -200,24 +273,20 @@ The second argument tells passport what to do in case of a success or failure.
 
 #### Session
 
-We've seen in previous lessons that authentication is based on a value stored in a cookie, and then, this cookie is sent to the server for every request until the session expires or is destroyed. This is a form of [serialization](https://en.wikipedia.org/wiki/Serialization).
+Passport authentication works by storing a value in a cookie, and then, this cookie is sent to the server for every request until the session expires or is destroyed. This is a form of [serialization](https://en.wikipedia.org/wiki/Serialization).
 
 To use the session with passport, we need to create two new methods in `config/passport.js` :
 
 ```javascript
-  module.exports = function(passport) {
+  passport.serializeUser(function(user, callback) {
+    callback(null, user.id)
+  })
 
-    passport.serializeUser(function(user, callback) {
-      callback(null, user.id);
-    });
-
-    passport.deserializeUser(function(id, callback) {
-      User.findById(id, function(err, user) {
-          callback(err, user);
-      });
-    });
-  ...
-
+  passport.deserializeUser(function(id, callback) {
+    User.findById(id, function(err, user) {
+        callback(err, user)
+    })
+  })
 ```
 
 What exactly are we doing here? To keep a user logged in, we will need to serialize their user.id to save it to their session. Then, whenever we want to check whether a user is logged in, we will need to deserialize that information from their session, and check to see whether the deserialized information matches a user in our database.
@@ -226,11 +295,11 @@ The method `serializeUser` will be used when a user signs in or signs up, passpo
 
 The second method will then be called every time there is a value for passport in the session cookie. In this method, we will receive the value stored in the cookie, in our case the `user.id`, then search for a user using this ID and then call the callback. The user object will then be stored in the request object passed to all controller methods calls.
 
-## Flash Messages - Intro (5 mins)
+## Flash Messages
 
-Remember Rails? Flash messages were one-time messages that were rendered in the views and when the page was reloaded, the flash was destroyed.  
+Flash messages are one-time messages that are rendered in the views, and when the page was reloaded, the flash is destroyed.  
 
-In our current Node app, back when we have created the signup strategy, in the callback we had this code:
+In our current Node app, when we have created the signup strategy, in the callback we had this code:
 
 ```javascript
   req.flash('signupMessage', 'This email is already used.')
@@ -239,7 +308,7 @@ In our current Node app, back when we have created the signup strategy, in the c
 This will store the message 'This email is already used.' into the response object and then we will be able to use it in the views. This is really useful to send back details about the process happening on the server to the client.
 
 
-## Incorporating Flash Messages - Codealong (5 mins)
+## Incorporating Flash Messages
 
 In the view `signup.hbs`, before the form, add:
 
@@ -259,13 +328,7 @@ Let's add some code into `getSignup` in the users Controller to render the templ
 
 Now, start up the app using `nodemon app.js` and visit `http://localhost:3000/signup` and try to signup two times with the same email, you should see the message "This email is already used." appearing when the form is reloaded.
 
-
-## Test it out - Independent Practice (5 mins)
-
-All the logic for the signup is now set - you should be able to go to `/signup` and create a user.
-
-
-## Sign-in - Codealong (10 mins)
+## Adding Sign-in
 
 Now we need to write the `signin` logic.
 
@@ -409,9 +472,7 @@ Now in the layout, we can add:
 </ul>
 ```
 
-## Signout - Codealong (10 mins)
-
-#### Logout
+## Adding Logout
 
 The last action to implement for our authentication system is to set the logout route and functionality.
 
@@ -423,11 +484,7 @@ function getLogout(request, response, next) {
 }
 ```
 
-## Test it out - Independent Practice (5 mins)
-
-You should now be able to login and logout! Test this out.
-
-## Restricting access (10 mins)
+## Restricting access
 
 As you know, an authentication system is used to allow/deny access to some resources to authenticated users.
 
@@ -456,20 +513,29 @@ For the `/secret` route, we need to add this to the `/config/routes.js` file:
 
 Now every time the route `/secret` is called, the method `authenticatedUser` will be executed first. In this method, we either redirect to the homepage or go to the next method to execute.
 
-Now test it out by clicking on the secret page link. You should see: "This page can only be accessed by authenticated users"
+Now add this function to `users.js`!
 
+```javascript
+  function secret(request, response){
+    response.render("secret.hbs");
+  }
+```
 
-## Independent Practice (20 minutes)
+Now test it out by heading to `/secret`. You should see: "This page can only be accessed by authenticated users" only if you are logged in. If you aren't logged in, you will be redirected to the home page.
 
-> ***Note:*** _This can be a pair programming activity or done independently._
-
-- Add pages with restricted access.
-
-- Once the user is authenticated, make sure he/she can't access the sign-in or sign-up and redirect with a message, and vice-versa for the logout
+**NOTE:** You can find the solution branch for this exercise [here](https://git.generalassemb.ly/ga-wdi-exercises/express-passport-local-authentication/tree/solution)!
 
 ## Conclusion (5 mins)
 
-Passport is a really useful tool because it allows developers to abstract the logic of authentication and customize it, if needed. It comes with a lot of extensions that we will cover later.
+Passport is a really useful tool because it allows developers to abstract the logic of authentication and customize it. It comes with a lot of useful extensions that you might want to use in your projects.
 
-- How do salts work with hashing?
-- Briefly describe the authentication process using passport in Express.
+
+## Bonus
+
+### OAuth and Third Party Login with Twitter
+
+Most modern web applications allow you to sign in using a social network like Facebook, Twitter or Github. [This tutorial](https://git.generalassemb.ly/ga-wdi-lessons/express-oauth) is a great introduction to how Passport.js can be used to implement that functionality.
+
+### Cookies
+
+If you are interested in learning more about how cookies work, read through [this article](exploring-cookies.md)!
