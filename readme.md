@@ -462,7 +462,7 @@ By default, passport will make the user available on the object `request`. In mo
 Now in the layout, we can add:
 
 ```javascript
-<ul>
+<ul class="nav navbar-nav">
   {{#if currentUser}}
     <li><a href="/logout">Logout {{currentUser.local.email}}</a></li>
   {{else}}
