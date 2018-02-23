@@ -120,10 +120,10 @@ The starter-code is structured like this:
     ├── app.js
     ├── config
     │   ├── passport.js
-    │   └── routes.js
     ├── controllers
     │   └── users.js
-    │   └── statics.js
+    ├── db
+    │   └── connection.js
     ├── models
     │   └── user.js
     ├── package.json
@@ -136,11 +136,20 @@ The starter-code is structured like this:
         ├── login.hbs
         ├── secret.hbs
         └── signup.hbs
-
-7 directories, 12 files
 ```
 
 Now let's open the code up in Visual Studio Code with `code .`
+
+In `app.js` require in passport. Near the top of your code add in `const passport = require('passport')`
+
+Now add in
+```
+  require('./config/passport')(passport)
+  app.use(passport.initialize())
+  app.use(passport.session())
+```
+
+Take a few minutes to look over the files and familiarize yourself with the content and code structure. What looks familiar? What's new? What stands out?
 
 #### Users & Statics Controller
 
@@ -157,10 +166,6 @@ Let's have a quick look at the `users.js` controller. As you can see, the file i
 
 The statics controller, just has the home action.
 
-#### Routes.js
-
-We have separated the routes into a separate file, to remove them from the app.js file.
-
 #### Signup
 
 First we will implement the signup logic. For this, we will have:
@@ -174,7 +179,7 @@ Open the file `config/passport.js` and add:
 
 ```javascript
 var LocalStrategy   = require('passport-local').Strategy;
- var User            = require('../models/user');
+var User            = require('../models/user');
 
  module.exports = function(passport) {
    passport.use('local-signup', new LocalStrategy({
@@ -187,13 +192,13 @@ var LocalStrategy   = require('passport-local').Strategy;
 };
 ```
 
-Here we are declaring the strategy for the signup - the first argument given to `LocalStrategy` is a hash giving info about the fields we will use for the authentication.
+Here we are declaring the strategy for the signup - the first argument given to `LocalStrategy` is an object giving info about the fields we will use for the authentication.
 
 By default, passport-local expects to find the fields `username` and `password` in the request. If you use different field names, as we do, you can give this information to `LocalStrategy`.
 
-The third argument will tell the strategy to send the request object to the callback so that we can do further things with it.
+The third argument will tell the strategy to send the *request* object to the callback so that we can do further things with it.
 
-Then, we pass the function that we want to be executed as a callback when this strategy is called: this callback method will receive the request object; the values corresponding to the fields name given in the hash; and the callback method(`done`) to execute when this 'strategy' is done.
+Then, we pass the function that we want to be executed as a callback when this strategy is called: this callback method will receive the request object; the values corresponding to the fields name given in the object; and the callback method(`callback`) to execute when this 'strategy' is done.
 
 Now, inside this callback method, we will implement our custom logic to signup a user.
 
@@ -243,7 +248,7 @@ The last thing is to add the method `encrypt` to the *user model* to hash the pa
   };
 ```
 
-As we did in the previous lesson, we generate a salt token and then hash the password using this new salt.
+Here we generate a salt token and then hash the password using this new salt.
 
 That's all for the signup strategy.
 
@@ -251,18 +256,18 @@ That's all for the signup strategy.
 
 Now we need to use this strategy in the route handler.
 
-In the `users.js` controller, for the method `postSignup`, we will add the call to the strategy we've declared
+In the `users.js` controller, for the route to POST `/signup`, we will add the call to the strategy we've declared
 
 ```javascript
-  function postSignup(request, response, next) {
+  router.post('/signup', (req, res) => {
     var signupStrategy = passport.authenticate('local-signup', {
       successRedirect : '/',
       failureRedirect : '/signup',
       failureFlash : true
     });
 
-    return signupStrategy(request, response, next);
-  }
+    return signupStrategy(req, res);
+  })
 ```
 
 Here we are calling the method `authenticate` (given to us by passport) and then telling passport which strategy (`'local-signup'`) to use.
@@ -293,11 +298,13 @@ To use the session with passport, we need to create two new methods in `config/p
 
 What exactly are we doing here? To keep a user logged in, we will need to serialize their user.id to save it to their session. Then, whenever we want to check whether a user is logged in, we will need to deserialize that information from their session, and check to see whether the deserialized information matches a user in our database.
 
-The method `serializeUser` will be used when a user signs in or signs up, passport will call this method, our code then call the `done` callback, the second argument is what we want to be serialized.
+The method `serializeUser` will be used when a user signs in or signs up, passport will call this method, our code then calls the `callback`, the second argument is what we want to be serialized.
 
 The second method will then be called every time there is a value for passport in the session cookie. In this method, we will receive the value stored in the cookie, in our case the `user.id`, then search for a user using this ID and then call the callback. The user object will then be stored in the request object passed to all controller methods calls.
 
-### Flash Messages 
+## Break (10 min / 11:20)
+
+## Flash Messages (10 min / 11:30)
 
 Flash messages are one-time messages that are rendered in the views, and when the page was reloaded, the flash is destroyed.  
 
@@ -307,12 +314,10 @@ In our current Node app, when we have created the signup strategy, in the callba
   req.flash('signupMessage', 'This email is already used.')
 ```
 
-This will store the message 'This email is already used.' into the response object and then we will be able to use it in the views. This is really useful to send back details about the process happening on the server to the client.
-
-## Break (10 min / 11:20)
+This will store the message 'This email is already used.' into the request object and then we will be able to use it in the views. This is really useful to send back details about the process happening on the server to the client.
 
 
-## Incorporating Flash Messages (10 min / 11:30)
+### Incorporating Flash Messages
 
 In the view `signup.hbs`, before the form, add:
 
@@ -322,15 +327,15 @@ In the view `signup.hbs`, before the form, add:
   {{/if}}
 ```
 
-Let's add some code into `getSignup` in the users Controller to render the template:
+Let's add some code into the GET `/signup` route in the users Controller to render the template:
 
 ```javascript
-  function getSignup(request, response, next) {
-    response.render('signup.hbs', { message: request.flash('signupMessage') });
-  }
+  router.get('/signup', (req, res) => {
+    res.render('signup.hbs', { message: req.flash('signupMessage') });
+  })
 ```
 
-Now, start up the app using `nodemon app.js` and visit `http://localhost:3000/signup` and try to signup two times with the same email, you should see the message "This email is already used." appearing when the form is reloaded.
+Now, start up the app using `nodemon app.js` and visit `http://localhost:7777/signup` and try to signup two times with the same email, you should see the message "This email is already used." appearing when the form is reloaded.
 
 ## Adding Sign-in (20 min / 11:50)
 
@@ -407,9 +412,9 @@ In `login.hbs`, add the same code that we added in `signup.hbs` to display the f
 Now, let's add the code to render the login form in the `getLogin` action in the controller (`users.js`):
 
 ```javascript
-  function getLogin(request, response, next) {
-    response.render('login.hbs', { message: request.flash('loginMessage') });
-  }
+  router.get('/login', (req, res) => {
+    response.render('login.hbs', { message: req.flash('loginMessage') });
+  })
 ```
 
 You'll notice that the flash message has a different name (`loginMessage`) than the in the signup route handler.
@@ -419,15 +424,15 @@ You'll notice that the flash message has a different name (`loginMessage`) than 
 We also need to have a route handler that deals with the login form after we have submit it. So in `users.js` lets also add:
 
 ```javascript
-  function postLogin(request, response, next) {
+  router.post('/login', (req, res) => {
     var loginProperty = passport.authenticate('local-login', {
       successRedirect : '/',
       failureRedirect : '/login',
       failureFlash : true
     });
 
-    return loginProperty(request, response, next);
-  }
+    return loginProperty(req, res);
+  })
 ```
 
 You should be able to login now!
@@ -482,10 +487,10 @@ The last action to implement for our authentication system is to set the logout 
 
 In `controllers/users.js`:
 ```js
-function getLogout(request, response, next) {
-  request.logout();
-  response.redirect('/');
-}
+router.get('/logout', (req, res) => {
+  req.logout();
+  res.redirect('/');
+})
 ```
 
 ## Restricting access (15 min / 12:20)
@@ -494,7 +499,15 @@ As you know, an authentication system is used to allow/deny access to some resou
 
 Let's now turn our attention to the `secret` route handler and it's associated template.
 
-To restrict access to this route, we're going to add a method at the top of `config/routes.js`:
+Try 
+```js
+router.get('/secret', (req, res) => {
+  if (req.isAuthenticated()) res.render('secret')
+  res.redirect('/')
+})
+```
+
+<!-- To restrict access to this route, we're going to add a method at the top of `config/routes.js`:
 
 ```javascript
   function authenticatedUser(req, res, next) {
@@ -513,7 +526,7 @@ For the `/secret` route, we need to add this to the `/config/routes.js` file:
 ```javascript
   router.route("/secret")
     .get(authenticatedUser, usersController.secret)
-```
+``` 
 
 Now every time the route `/secret` is called, the method `authenticatedUser` will be executed first. In this method, we either redirect to the homepage or go to the next method to execute.
 
@@ -524,6 +537,7 @@ Now add this function to `users.js`!
     response.render("secret.hbs");
   }
 ```
+-->
 
 Now test it out by heading to `/secret`. You should see: "This page can only be accessed by authenticated users" only if you are logged in. If you aren't logged in, you will be redirected to the home page.
 
