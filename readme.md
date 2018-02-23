@@ -140,6 +140,15 @@ The starter-code is structured like this:
 
 Now let's open the code up in Visual Studio Code with `code .`
 
+In `app.js` require in passport. Near the top of your code add in `const passport = require('passport')`
+
+Now add in
+```
+  require('./config/passport')(passport)
+  app.use(passport.initialize())
+  app.use(passport.session())
+```
+
 Take a few minutes to look over the files and familiarize yourself with the content and code structure. What looks familiar? What's new? What stands out?
 
 #### Users & Statics Controller
