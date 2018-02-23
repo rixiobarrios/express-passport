@@ -120,10 +120,10 @@ The starter-code is structured like this:
     ├── app.js
     ├── config
     │   ├── passport.js
-    │   └── routes.js
     ├── controllers
     │   └── users.js
-    │   └── statics.js
+    ├── db
+    │   └── connection.js
     ├── models
     │   └── user.js
     ├── package.json
@@ -136,11 +136,11 @@ The starter-code is structured like this:
         ├── login.hbs
         ├── secret.hbs
         └── signup.hbs
-
-7 directories, 12 files
 ```
 
 Now let's open the code up in Visual Studio Code with `code .`
+
+Take a few minutes to look over the files and familiarize yourself with the content and code structure. What looks familiar? What's new? What stands out?
 
 #### Users & Statics Controller
 
@@ -174,7 +174,7 @@ Open the file `config/passport.js` and add:
 
 ```javascript
 var LocalStrategy   = require('passport-local').Strategy;
- var User            = require('../models/user');
+var User            = require('../models/user');
 
  module.exports = function(passport) {
    passport.use('local-signup', new LocalStrategy({
@@ -251,18 +251,18 @@ That's all for the signup strategy.
 
 Now we need to use this strategy in the route handler.
 
-In the `users.js` controller, for the method `postSignup`, we will add the call to the strategy we've declared
+In the `users.js` controller, for the route to POST `/signup`, we will add the call to the strategy we've declared
 
 ```javascript
-  function postSignup(request, response, next) {
+  router.post('/signup', (req, res) => {
     var signupStrategy = passport.authenticate('local-signup', {
       successRedirect : '/',
       failureRedirect : '/signup',
       failureFlash : true
     });
 
-    return signupStrategy(request, response, next);
-  }
+    return signupStrategy(req, res);
+  })
 ```
 
 Here we are calling the method `authenticate` (given to us by passport) and then telling passport which strategy (`'local-signup'`) to use.
@@ -322,12 +322,12 @@ In the view `signup.hbs`, before the form, add:
   {{/if}}
 ```
 
-Let's add some code into `getSignup` in the users Controller to render the template:
+Let's add some code into the GET `/signup` route in the users Controller to render the template:
 
 ```javascript
-  function getSignup(request, response, next) {
-    response.render('signup.hbs', { message: request.flash('signupMessage') });
-  }
+  router.get('/signup', (req, res) => {
+    res.render('signup.hbs', { message: req.flash('signupMessage') });
+  })
 ```
 
 Now, start up the app using `nodemon app.js` and visit `http://localhost:3000/signup` and try to signup two times with the same email, you should see the message "This email is already used." appearing when the form is reloaded.
@@ -407,9 +407,9 @@ In `login.hbs`, add the same code that we added in `signup.hbs` to display the f
 Now, let's add the code to render the login form in the `getLogin` action in the controller (`users.js`):
 
 ```javascript
-  function getLogin(request, response, next) {
-    response.render('login.hbs', { message: request.flash('loginMessage') });
-  }
+  router.get('/login', (req, res) => {
+    response.render('login.hbs', { message: req.flash('loginMessage') });
+  })
 ```
 
 You'll notice that the flash message has a different name (`loginMessage`) than the in the signup route handler.
@@ -419,15 +419,15 @@ You'll notice that the flash message has a different name (`loginMessage`) than 
 We also need to have a route handler that deals with the login form after we have submit it. So in `users.js` lets also add:
 
 ```javascript
-  function postLogin(request, response, next) {
+  router.post('/login', (req, res) => {
     var loginProperty = passport.authenticate('local-login', {
       successRedirect : '/',
       failureRedirect : '/login',
       failureFlash : true
     });
 
-    return loginProperty(request, response, next);
-  }
+    return loginProperty(req, res);
+  })
 ```
 
 You should be able to login now!
@@ -482,10 +482,10 @@ The last action to implement for our authentication system is to set the logout 
 
 In `controllers/users.js`:
 ```js
-function getLogout(request, response, next) {
-  request.logout();
-  response.redirect('/');
-}
+router.get('/logout', (req, res) => {
+  req.logout();
+  res.redirect('/');
+})
 ```
 
 ## Restricting access (15 min / 12:20)
@@ -494,7 +494,15 @@ As you know, an authentication system is used to allow/deny access to some resou
 
 Let's now turn our attention to the `secret` route handler and it's associated template.
 
-To restrict access to this route, we're going to add a method at the top of `config/routes.js`:
+Try 
+```js
+router.get('/secret', (req, res) => {
+  if (req.isAuthenticated()) res.render('secret')
+  res.redirect('/')
+})
+```
+
+<!-- To restrict access to this route, we're going to add a method at the top of `config/routes.js`:
 
 ```javascript
   function authenticatedUser(req, res, next) {
@@ -513,7 +521,7 @@ For the `/secret` route, we need to add this to the `/config/routes.js` file:
 ```javascript
   router.route("/secret")
     .get(authenticatedUser, usersController.secret)
-```
+``` 
 
 Now every time the route `/secret` is called, the method `authenticatedUser` will be executed first. In this method, we either redirect to the homepage or go to the next method to execute.
 
@@ -524,6 +532,7 @@ Now add this function to `users.js`!
     response.render("secret.hbs");
   }
 ```
+-->
 
 Now test it out by heading to `/secret`. You should see: "This page can only be accessed by authenticated users" only if you are logged in. If you aren't logged in, you will be redirected to the home page.
 
