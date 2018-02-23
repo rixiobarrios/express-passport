@@ -157,10 +157,6 @@ Let's have a quick look at the `users.js` controller. As you can see, the file i
 
 The statics controller, just has the home action.
 
-#### Routes.js
-
-We have separated the routes into a separate file, to remove them from the app.js file.
-
 #### Signup
 
 First we will implement the signup logic. For this, we will have:
@@ -187,13 +183,13 @@ var User            = require('../models/user');
 };
 ```
 
-Here we are declaring the strategy for the signup - the first argument given to `LocalStrategy` is a hash giving info about the fields we will use for the authentication.
+Here we are declaring the strategy for the signup - the first argument given to `LocalStrategy` is an object giving info about the fields we will use for the authentication.
 
 By default, passport-local expects to find the fields `username` and `password` in the request. If you use different field names, as we do, you can give this information to `LocalStrategy`.
 
-The third argument will tell the strategy to send the request object to the callback so that we can do further things with it.
+The third argument will tell the strategy to send the *request* object to the callback so that we can do further things with it.
 
-Then, we pass the function that we want to be executed as a callback when this strategy is called: this callback method will receive the request object; the values corresponding to the fields name given in the hash; and the callback method(`done`) to execute when this 'strategy' is done.
+Then, we pass the function that we want to be executed as a callback when this strategy is called: this callback method will receive the request object; the values corresponding to the fields name given in the object; and the callback method(`callback`) to execute when this 'strategy' is done.
 
 Now, inside this callback method, we will implement our custom logic to signup a user.
 
@@ -243,7 +239,7 @@ The last thing is to add the method `encrypt` to the *user model* to hash the pa
   };
 ```
 
-As we did in the previous lesson, we generate a salt token and then hash the password using this new salt.
+Here we generate a salt token and then hash the password using this new salt.
 
 That's all for the signup strategy.
 
@@ -293,11 +289,13 @@ To use the session with passport, we need to create two new methods in `config/p
 
 What exactly are we doing here? To keep a user logged in, we will need to serialize their user.id to save it to their session. Then, whenever we want to check whether a user is logged in, we will need to deserialize that information from their session, and check to see whether the deserialized information matches a user in our database.
 
-The method `serializeUser` will be used when a user signs in or signs up, passport will call this method, our code then call the `done` callback, the second argument is what we want to be serialized.
+The method `serializeUser` will be used when a user signs in or signs up, passport will call this method, our code then calls the `callback`, the second argument is what we want to be serialized.
 
 The second method will then be called every time there is a value for passport in the session cookie. In this method, we will receive the value stored in the cookie, in our case the `user.id`, then search for a user using this ID and then call the callback. The user object will then be stored in the request object passed to all controller methods calls.
 
-### Flash Messages 
+## Break (10 min / 11:20)
+
+## Flash Messages (10 min / 11:30)
 
 Flash messages are one-time messages that are rendered in the views, and when the page was reloaded, the flash is destroyed.  
 
@@ -307,12 +305,10 @@ In our current Node app, when we have created the signup strategy, in the callba
   req.flash('signupMessage', 'This email is already used.')
 ```
 
-This will store the message 'This email is already used.' into the response object and then we will be able to use it in the views. This is really useful to send back details about the process happening on the server to the client.
-
-## Break (10 min / 11:20)
+This will store the message 'This email is already used.' into the request object and then we will be able to use it in the views. This is really useful to send back details about the process happening on the server to the client.
 
 
-## Incorporating Flash Messages (10 min / 11:30)
+### Incorporating Flash Messages
 
 In the view `signup.hbs`, before the form, add:
 
@@ -330,7 +326,7 @@ Let's add some code into the GET `/signup` route in the users Controller to rend
   })
 ```
 
-Now, start up the app using `nodemon app.js` and visit `http://localhost:3000/signup` and try to signup two times with the same email, you should see the message "This email is already used." appearing when the form is reloaded.
+Now, start up the app using `nodemon app.js` and visit `http://localhost:7777/signup` and try to signup two times with the same email, you should see the message "This email is already used." appearing when the form is reloaded.
 
 ## Adding Sign-in (20 min / 11:50)
 
