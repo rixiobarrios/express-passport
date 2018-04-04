@@ -108,7 +108,7 @@ Think of flash as a session that only lasts for one request.
 
 First, clone the starter code
 
-    $ git clone https://git.generalassemb.ly/ga-wdi-exercises/express-passport-local-authentication/
+    $ git clone https://git.generalassemb.ly/dc-wdi-node-express/express-passport-local-authentication
 
 `cd` into the cloned folder, and run `npm install` to ensure that we have all of the correct dependencies.
 
@@ -541,7 +541,7 @@ Now add this function to `users.js`!
 
 Now test it out by heading to `/secret`. You should see: "This page can only be accessed by authenticated users" only if you are logged in. If you aren't logged in, you will be redirected to the home page.
 
-**NOTE:** You can find the solution branch for this exercise [here](https://git.generalassemb.ly/ga-wdi-exercises/express-passport-local-authentication/tree/solution)!
+**NOTE:** You can find the solution branch for this exercise [here](https://git.generalassemb.ly/dc-wdi-node-express/express-passport-local-authentication/tree/solution)!
 
 ## Conclusion (Rest of Class / 12:30)
 
@@ -552,7 +552,7 @@ Passport is a really useful tool because it allows developers to abstract the lo
 
 ### OAuth and Third Party Login with Twitter
 
-Most modern web applications allow you to sign in using a social network like Facebook, Twitter or Github. [This tutorial](https://git.generalassemb.ly/ga-wdi-lessons/express-oauth) is a great introduction to how Passport.js can be used to implement that functionality.
+Most modern web applications allow you to sign in using a social network like Facebook, Twitter or Github. [This tutorial](https://git.generalassemb.ly/dc-wdi-node-express/express-oauth) is a great introduction to how Passport.js can be used to implement that functionality.
 
 ### Cookies
 
