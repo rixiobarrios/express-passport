@@ -3,12 +3,12 @@
 ## Learning Objectives
 
 - Explain the difference between Encryption and Hashing
-- Explain what is an authentication strategy
+- Explain what an authentication strategy is
 - Use passport-local to implement user authentication in an Express application
 - Explain the difference between sessions and flashes
 - Explain the role cookies play in user authentication
 
-## Intro to Passport.js (10 min / 10:10)
+## Intro to Passport.js (10 min / 0:10)
 
 From the [passport website](http://passportjs.org/docs):
 
@@ -28,9 +28,13 @@ There are currently more than [300 Passport.js strategies](http://www.passportjs
 
 [Passport.js](http://www.passportjs.org/) is a middleware that simplifies implementing user authentication in JS applications.
 
-While it's interesting to know what's happening under the hood when authenticating a user, it's very unlikely you'll implement your own authentication mechanism in any future project. Passport is a well-tested open source authentication solution for JavaScript Applications.
+Building your own authentication is hard - really hard. It's easy to not do it well. Doing it the wrong way can have major consquences, so it's almost always better to rely on something popular and prebuilt. 
 
-Along with Bcrypt, Passport takes care of making sure that passwords are properly stored in our database (i.e. not in plain text).
+Passport is a good solution for javascript applications. It's popular, well-tested, and secure.
+
+When we use Passport and bcrypt together, it takes care of making sure that passwords are properly stored in our database (i.e. not in plain text).
+
+> Note: We will talk about bcrypt shortly
 
 <details>
   <summary><strong>Why might storing passwords in the database be a bad idea?</strong></summary>
@@ -48,9 +52,9 @@ Along with Bcrypt, Passport takes care of making sure that passwords are properl
 
 </details>
 
-### You Do: Hashing vs. Encryption (10 min / 10:20)
+### You Do: Hashing vs. Encryption (10 min / 0:20)
 
-Read through [this blog post](http://www.securityinnovationeurope.com/blog/whats-the-difference-between-hashing-and-encrypting).
+Pair up, then read through [this blog post](http://www.securityinnovationeurope.com/blog/whats-the-difference-between-hashing-and-encrypting) together.
 
 In pairs, post the answers to these questions in your own words as an issue on this repo.
 
@@ -82,19 +86,39 @@ In pairs, post the answers to these questions in your own words as an issue on t
 > - [Encoding vs. Encryption vs. Hashing vs. Obfuscation](https://danielmiessler.com/study/encoding-encryption-hashing-obfuscation/#gs.7lUOAZI)
 > - [Why are salted hashes more secure for password storage?](http://security.stackexchange.com/questions/51959/why-are-salted-hashes-more-secure-for-password-storage)
 
-## Sessions / Flash (10 min / 10:30)
+## Sessions / Flash (10 min / 0:30)
 
 ### Sessions
 
-Many of us have been to several webpages that only allow us to access content if we are logged in users of the webpage. Why do you think this would be necessary for many websites? Also, how is this concept of "being signed in" done programmatically? How is that information persisted from request to request? Enter Sessions.
+Many of us have been to several webpages that only allow us to access content if we are logged in users of the webpage. Why do you think this would be necessary for many websites? Also, how is this concept of "being signed in" done programmatically? How is that information persisted from request to request? Enter sessions.
 
 Most applications need to keep track of the state of a particular user. Is a user logged-in? Is there information that is unique to this user's instance of being signed in?
 
-HTTP is by nature, however, stateless. That is, the program is not keeping record of previous interactions. Without state, a user would have to identify themselves after every request. Our shopping carts in Amazon couldn't keep their contents.
+HTTP is by nature, stateless. That is, the program is not keeping record of previous interactions. Without state, a user would have to identify themselves after every request. Our shopping carts in Amazon couldn't keep their contents.
 
-A session is just a place to store data on the browser during one request that you can read during later requests. The session in JS is an object. This object allows us to keep track of this information. Today in Express we will create a new session automatically when a new user signs into an application.
+A session is just a way to store data in the browser between requests. The session in JS is an object which holds the properties we need. Today in Express we will create a new session automatically when a new user signs into an application.
 
 Sessions are used mostly for user authentication and authorization, shopping carts, and setting a current model to persist throughout requests.
+
+A contrived example of a session object might look like this:
+
+```js
+{
+  sessionID: 'shdfsk3@234jsd!!@#jx...',
+  expires: '6/18/2018:00-00-00UTC'
+}
+```
+
+Note that sessions shouldn't contain any sensitive information about the user.
+
+#### Real example
+
+- Open up your browser to a website that has authentication (like github). Make sure you're logged in.
+- Open the inspector and go to the `Network` tab. Make sure you have it set to "All" requests (or to not filter any requests).
+- Refresh the page, then click on the first request (it should be similar to the url of the site you're on).
+- Click on the `Headers` tab and you can see all of the http headers that get sent and received with that request.
+
+> Which one of these looks like it might contain session information?
 
 ### Flash
 
@@ -102,13 +126,15 @@ Flash is a message that is generated in one controller action, and is accessible
 
 Think of flash as a session that only lasts for one request.
 
-## We Do: Implementing Passport.js (40 min / 11:10)
+## We Do: Implementing Passport.js (40 min / 1:10)
 
 #### Setup/Review Starter Code
 
 First, clone the starter code
 
-    $ git clone https://git.generalassemb.ly/dc-wdi-node-express/express-passport-local-authentication
+```bash
+$ git clone git@git.generalassemb.ly:dc-wdi-node-express/express-passport-local-authentication.git
+```
 
 `cd` into the cloned folder, and run `npm install` to ensure that we have all of the correct dependencies.
 
@@ -142,18 +168,18 @@ Now let's open the code up in Visual Studio Code with `code .`
 
 In `app.js` require in passport. Near the top of your code add in `const passport = require('passport')`
 
-Now add in
-```
-  require('./config/passport')(passport)
-  app.use(passport.initialize())
-  app.use(passport.session())
+Below all of the requires at the top, add in: 
+```js
+require('./config/passport')(passport)
+app.use(passport.initialize())
+app.use(passport.session())
 ```
 
 Take a few minutes to look over the files and familiarize yourself with the content and code structure. What looks familiar? What's new? What stands out?
 
 #### Users & Statics Controller
 
-Let's have a quick look at the `users.js` controller. As you can see, the file is structured like a module with 6 empty route handlers:
+Let's have a quick look at the `users.js` controller. As you can see, the file is structured like a module with 6 route handlers:
 
 ```
 // GET /signup
@@ -164,14 +190,12 @@ Let's have a quick look at the `users.js` controller. As you can see, the file i
 // Restricted page
 ```
 
-The statics controller, just has the home action.
-
 #### Signup
 
 First we will implement the signup logic. For this, we will have:
 
-1. a route action to display the signup form
-2. a route action to receive the params sent by the form
+1. a route action to display the signup form (GET)
+2. a route action to receive the params sent by the form (POST)
 
 When the server receives the signup params, the job of saving the user data into the database, hashing the password and validating the data will be delegated to the strategy allocated for this part of the authentication, this logic will be written in `config/passport.js`
 
@@ -194,51 +218,52 @@ var User            = require('../models/user');
 
 Here we are declaring the strategy for the signup - the first argument given to `LocalStrategy` is an object giving info about the fields we will use for the authentication.
 
-By default, passport-local expects to find the fields `username` and `password` in the request. If you use different field names, as we do, you can give this information to `LocalStrategy`.
+By default, passport-local expects to find the fields `username` and `password` in the request. If you use different field names on the form, as we do, you can give this information to `LocalStrategy`.
 
 The third argument will tell the strategy to send the *request* object to the callback so that we can do further things with it.
 
-Then, we pass the function that we want to be executed as a callback when this strategy is called: this callback method will receive the request object; the values corresponding to the fields name given in the object; and the callback method(`callback`) to execute when this 'strategy' is done.
+Then, we pass the function that we want to be executed as a callback when this strategy is called: this callback method will receive the request object (`req`); the values corresponding to the fields name given in the object; and the callback method(`callback`) to execute when this 'strategy' is done.
 
 Now, inside this callback method, we will implement our custom logic to signup a user.
 
-```javascript
-  ...
-  }, function(req, email, password, callback) {
-    // Find a user with this e-mail
-    User.findOne({ 'local.email' :  email }, function(err, user) {
-      if (err) return callback(err);
+```js
+...
+}, function(req, email, password, callback) {
+  // Find a user with this e-mail
+  User.findOne({ 'local.email' :  email }, function(err, user) {
+    if (err) return callback(err);
 
-      // If there already is a user with this email
-      if (user) {
-	return callback(null, false, req.flash('signupMessage', 'This email is already used.'));
-      } else {
-      // There is no email registered with this emai
-	// Create a new user
-	var newUser            = new User();
-	newUser.local.email    = email;
-	newUser.local.password = newUser.encrypt(password);
+    // If there already is a user with this email
+    if (user) {
+      return callback(null, false, req.flash('signupMessage', 'This email is already used.'));
+    }
+    else {
+      // There is no email registered with this email
+      // Create a new user
+      var newUser            = new User();
+      newUser.local.email    = email;
+      newUser.local.password = newUser.encrypt(password);
 
-	newUser.save(function(err) {
-	  if (err) throw err;
-	  return callback(null, newUser);
-	});
-      }
-    });
-  }));
-  ....
+      newUser.save(function(err) {
+        if (err) throw err;
+        return callback(null, newUser);
+      });
+    }
+  });
+}));
+....
 
 ```
 
-First we will try to find a user with the same email, to make sure this email is not already use.
+First we will try to find a user with the same email, to make sure this email is not already use. In this case the `User` variable is our model object.
 
-Once we have the result of this mongo request, we will check if a user document is returned - meaning that a user with this email already exists.  In this case, we will call the `callback` method with the two arguments `null` and `false` - the first argument is for when a server error happens; the second one corresponds to the user object, which in this case hasn't been created, so we return false.
+Once we have the result of this mongo request, we will check if a user document is returned - meaning that a user with this email already exists. In this case, we will call the `callback` method with the two arguments `null` and `false` - the first argument is for when a server error happens; the second one corresponds to the user object, which in this case hasn't been created, so we return false.
 
 If no user is returned, it means that the email received in the request can be used to create a new user object. We will, therefore create a new user object, hash the password and save the new created object to our mongo collection. When all this logic is created, we will call the `callback` method with the two arguments: `null` and the new user object created.
 
 In the first situation we pass `false` as the second argument, in the second case, we pass a user object to the callback, corresponding to true, based on this argument, passport will know if the strategy has been successfully executed and if the request should redirect to the `success` or `failure` path. (see below).
 
-#### User.js
+#### models/user.js
 
 The last thing is to add the method `encrypt` to the *user model* to hash the password received and save it as encrypted:
 
@@ -258,16 +283,16 @@ Now we need to use this strategy in the route handler.
 
 In the `users.js` controller, for the route to POST `/signup`, we will add the call to the strategy we've declared
 
-```javascript
-  router.post('/signup', (req, res) => {
-    var signupStrategy = passport.authenticate('local-signup', {
-      successRedirect : '/',
-      failureRedirect : '/signup',
-      failureFlash : true
-    });
+```js
+router.post('/signup', (req, res) => {
+  var signupStrategy = passport.authenticate('local-signup', {
+    successRedirect : '/',
+    failureRedirect : '/signup',
+    failureFlash : true
+  });
 
-    return signupStrategy(req, res);
-  })
+  return signupStrategy(req, res);
+})
 ```
 
 Here we are calling the method `authenticate` (given to us by passport) and then telling passport which strategy (`'local-signup'`) to use.
@@ -282,18 +307,18 @@ The second argument tells passport what to do in case of a success or failure.
 
 Passport authentication works by storing a value in a cookie, and then, this cookie is sent to the server for every request until the session expires or is destroyed. This is a form of [serialization](https://en.wikipedia.org/wiki/Serialization).
 
-To use the session with passport, we need to create two new methods in `config/passport.js` :
+To use the session with passport, we need to create two new methods in `config/passport.js`. These should go inside the `module.exports` object.
 
-```javascript
-  passport.serializeUser(function(user, callback) {
-    callback(null, user.id)
-  })
+```js
+passport.serializeUser(function(user, callback) {
+  callback(null, user.id)
+})
 
-  passport.deserializeUser(function(id, callback) {
-    User.findById(id, function(err, user) {
-        callback(err, user)
-    })
+passport.deserializeUser(function(id, callback) {
+  User.findById(id, function(err, user) {
+      callback(err, user)
   })
+})
 ```
 
 What exactly are we doing here? To keep a user logged in, we will need to serialize their user.id to save it to their session. Then, whenever we want to check whether a user is logged in, we will need to deserialize that information from their session, and check to see whether the deserialized information matches a user in our database.
@@ -302,11 +327,11 @@ The method `serializeUser` will be used when a user signs in or signs up, passpo
 
 The second method will then be called every time there is a value for passport in the session cookie. In this method, we will receive the value stored in the cookie, in our case the `user.id`, then search for a user using this ID and then call the callback. The user object will then be stored in the request object passed to all controller methods calls.
 
-## Break (10 min / 11:20)
+## Break (10 min / 1:20)
 
-## Flash Messages (10 min / 11:30)
+## Flash Messages (10 min / 1:30)
 
-Flash messages are one-time messages that are rendered in the views, and when the page was reloaded, the flash is destroyed.  
+Flash messages are one-time messages that are rendered in the views, and when the page was reloaded, the flash is destroyed.
 
 In our current Node app, when we have created the signup strategy, in the callback we had this code:
 
@@ -316,34 +341,33 @@ In our current Node app, when we have created the signup strategy, in the callba
 
 This will store the message 'This email is already used.' into the request object and then we will be able to use it in the views. This is really useful to send back details about the process happening on the server to the client.
 
-
 ### Incorporating Flash Messages
 
 In the view `signup.hbs`, before the form, add:
 
 ```hbs
-  {{#if message}}
-    <div class="alert alert-danger">{{message}}</div>
-  {{/if}}
+{{#if message}}
+  <div class="alert alert-danger">{{message}}</div>
+{{/if}}
 ```
 
 Let's add some code into the GET `/signup` route in the users Controller to render the template:
 
 ```javascript
-  router.get('/signup', (req, res) => {
-    res.render('signup.hbs', { message: req.flash('signupMessage') });
-  })
+router.get('/signup', (req, res) => {
+  res.render('signup', { message: req.flash('signupMessage') });
+})
 ```
 
 Now, start up the app using `nodemon app.js` and visit `http://localhost:7777/signup` and try to signup two times with the same email, you should see the message "This email is already used." appearing when the form is reloaded.
 
-## Adding Sign-in (20 min / 11:50)
+## Adding Sign-in (20 min / 1:50)
 
 Now we need to write the `signin` logic.
 
 We also need to implement a custom strategy for the login, In `config/passport.js`, after the signup strategy, add add a new LocalStrategy:
 
-```javascript
+```js
   passport.use('local-login', new LocalStrategy({
     usernameField : 'email',
     passwordField : 'password',
@@ -359,7 +383,7 @@ For this strategy, we will search for a user document using the email received i
 
 Inside passport.js let's add this code:
 
-```javascript
+```js
   ...
   }, function(req, email, password, callback) {
 
@@ -389,7 +413,7 @@ Inside passport.js let's add this code:
 
 We need to add a new method to the user schema in `user.js` so that we can use the method `user.validPassword()`. Let's add:
 
-```javascript
+```js
   User.methods.validPassword = function(password) {
     return bcrypt.compareSync(password, this.local.password);
   };
@@ -401,43 +425,43 @@ As we are again using flash messages, we will need to add some code to display t
 
 In `login.hbs`, add the same code that we added in `signup.hbs` to display the flash messages:
 
-```javascript
-  {{#if message}}
-    <div class="alert alert-danger">{{message}}</div>
-  {{/if}}
+```handlebars
+{{#if message}}
+  <div class="alert alert-danger">{{message}}</div>
+{{/if}
 ```
 
 #### Login GET Route handler
 
 Now, let's add the code to render the login form in the `getLogin` action in the controller (`users.js`):
 
-```javascript
-  router.get('/login', (req, res) => {
-    response.render('login.hbs', { message: req.flash('loginMessage') });
-  })
+```js
+router.get('/login', (req, res) => {
+  response.render('login.hbs', { message: req.flash('loginMessage') });
+})
 ```
 
-You'll notice that the flash message has a different name (`loginMessage`) than the in the signup route handler.
+You'll notice that the flash message has a different name (`'loginMessage'`) than the message in the signup route handler.
 
 #### Login POST Route handler
 
 We also need to have a route handler that deals with the login form after we have submit it. So in `users.js` lets also add:
 
-```javascript
-  router.post('/login', (req, res) => {
-    var loginProperty = passport.authenticate('local-login', {
-      successRedirect : '/',
-      failureRedirect : '/login',
-      failureFlash : true
-    });
+```js
+router.post('/login', (req, res) => {
+  var loginProperty = passport.authenticate('local-login', {
+    successRedirect : '/',
+    failureRedirect : '/login',
+    failureFlash : true
+  });
 
-    return loginProperty(req, res);
-  })
+  return loginProperty(req, res);
+})
 ```
 
 You should be able to login now!
 
-## Test it out - Independent Practice (5 min / 11:55)
+## Test it out - Independent Practice (5 min / 1:55)
 
 #### Invalid Login
 
@@ -455,22 +479,22 @@ Now, try to login with valid details and you should be taken to the index page w
 The login strategy has now been setup!
 
 
-### Accessing the User object globally (10 min / 12:05)
+### Accessing the User object globally (10 min / 2:05)
 
 By default, passport will make the user available on the object `request`. In most cases, we want to be able to use the user object everywhere, for that, we're going to add a middleware in `app.js`:
 
-```javascript
-  require('./config/passport')(passport);
+```js
+require('./config/passport')(passport);
 
-  app.use(function (req, res, next) {
-    res.locals.currentUser = req.user;
-    next();
-  });
+app.use(function (req, res, next) {
+  res.locals.currentUser = req.user;
+  next();
+});
 ```
 
 Now in the layout, we can add:
 
-```javascript
+```hbs
 <ul class="nav navbar-nav">
   {{#if currentUser}}
     <li><a href="/logout">Logout {{currentUser.local.email}}</a></li>
@@ -493,7 +517,7 @@ router.get('/logout', (req, res) => {
 })
 ```
 
-## Restricting access (15 min / 12:20)
+## Restricting access (15 min / 2:20)
 
 As you know, an authentication system is used to allow/deny access to some resources to authenticated users.
 
@@ -502,48 +526,20 @@ Let's now turn our attention to the `secret` route handler and it's associated t
 Try 
 ```js
 router.get('/secret', (req, res) => {
-  if (req.isAuthenticated()) res.render('secret')
-  res.redirect('/')
+  if (req.isAuthenticated()) { 
+    res.render('secret') 
+  }
+  else {
+    res.redirect('/')
+  }
 })
 ```
 
-<!-- To restrict access to this route, we're going to add a method at the top of `config/routes.js`:
-
-```javascript
-  function authenticatedUser(req, res, next) {
-    // If the user is authenticated, then we continue the execution
-    if (req.isAuthenticated()) return next();
-
-    // Otherwise the request is always redirected to the home page
-    res.redirect('/');
-  }
-```
-
-Now when we want to "secure" access to a particular route, we will add a call to the method in the route definition.
-
-For the `/secret` route, we need to add this to the `/config/routes.js` file:
-
-```javascript
-  router.route("/secret")
-    .get(authenticatedUser, usersController.secret)
-``` 
-
-Now every time the route `/secret` is called, the method `authenticatedUser` will be executed first. In this method, we either redirect to the homepage or go to the next method to execute.
-
-Now add this function to `users.js`!
-
-```javascript
-  function secret(request, response){
-    response.render("secret.hbs");
-  }
-```
--->
-
 Now test it out by heading to `/secret`. You should see: "This page can only be accessed by authenticated users" only if you are logged in. If you aren't logged in, you will be redirected to the home page.
 
-**NOTE:** You can find the solution branch for this exercise [here](https://git.generalassemb.ly/dc-wdi-node-express/express-passport-local-authentication/tree/solution)!
+**NOTE:** You can find the solution branch for this exercise [here](https://git.generalassemb.ly/dc-wdi-node-express/express-passport-local-authentication/tree/wdi23-solution)!
 
-## Conclusion (Rest of Class / 12:30)
+## Conclusion (Rest of Class / 2:30)
 
 Passport is a really useful tool because it allows developers to abstract the logic of authentication and customize it. It comes with a lot of useful extensions that you might want to use in your projects.
 
