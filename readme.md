@@ -10,7 +10,7 @@
 
 ## Intro to Passport.js (10 min / 0:10)
 
-From the [passport website](http://passportjs.org/docs):
+From the [passport website](http://www.passportjs.org/docs/):
 
 "_Passport is authentication Middleware for Node. It is designed to serve a singular purpose: authenticate requests. When writing modules, encapsulation is a virtue, so Passport delegates all other functionality to the application. This separation of concerns keeps code clean and maintainable, and makes Passport extremely easy to integrate into an application._
 
