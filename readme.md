@@ -54,7 +54,7 @@ When we use Passport and bcrypt together, it takes care of making sure that pass
 
 ### You Do: Hashing vs. Encryption (10 min / 0:20)
 
-Pair up, then read through [this blog post](http://www.securityinnovationeurope.com/blog/whats-the-difference-between-hashing-and-encrypting) together.
+Pair up, then read through [this blog post](https://www.ssl2buy.com/wiki/difference-between-hashing-and-encryption) together.
 
 In pairs, post the answers to these questions in your own words as an issue on this repo.
 
